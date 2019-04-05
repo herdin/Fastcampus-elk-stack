@@ -33,9 +33,11 @@ services:
     configs:
       - source: metricbeat_config
         target: /usr/share/metricbeat/metricbeat.yml
+    networks:
+      - elk_net
     volumes:
-      - /proc:/hostfs/proc:ro
-      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      # - /proc:/hostfs/proc:ro
+      # - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /:/hostfs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
