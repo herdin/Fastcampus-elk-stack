@@ -114,7 +114,6 @@ services:
   ################## Metricbeat info ##################
   metricbeat:
     image: docker.elastic.co/beats/metricbeat:6.5.4
-    hostname: "{{.Node.Hostname}}"
     user: root
     command:
       - "-system.hostfs=/hostfs"
