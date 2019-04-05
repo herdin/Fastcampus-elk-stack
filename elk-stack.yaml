@@ -136,23 +136,6 @@ services:
         max_attempts: 3
         window: 60s
 
-  ################## Apm-server info ##################
-  apm-server:
-    image: docker.elastic.co/apm/apm-server:6.5.4
-    user: root
-    networks:
-      - elk
-    configs:
-      - source: apm-server_config
-        target: /usr/share/apm-server/apm-server.yml
-    deploy:
-      mode: replicated
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 60s
-
 ################## Global config ##################
 configs:
 
@@ -179,10 +162,6 @@ configs:
   ################## Metricbeat config ##################
   metricbeat_config:
     file: ./metricbeat/config/metricbeat.yml
-
-  ################## APM-server config ##################
-  apm-server_config:
-    file: ./apm-server/config/apm-server.yml
 
 networks:
   elk:
