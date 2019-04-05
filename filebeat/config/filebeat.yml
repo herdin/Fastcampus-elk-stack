@@ -20,7 +20,7 @@ filebeat.prospectors:
 
 #============================== Output monitoring =====================================
 output.logstash:
-  hosts: ["elk_logstash:5000"]
+  hosts: ["logstash:5000"]
 
 #================================ Logging =====================================
 logging.level: warning
