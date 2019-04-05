@@ -1,0 +1,35 @@
+apm-server:
+  host: "0.0.0.0:8200"
+  shutdown_timeout: 15s
+  secret_token: xxVpmQB2HMzCL9PgBHVrnxjNXXw5J7bd79DFm6sjBJR5HPXDhcF8MSb3vv4bpg44
+
+#============================== Dashboards =====================================
+setup.dashboards.enabled: true
+#============================== Kibana =====================================
+# Starting with Beats version 6.0.0, the dashboards are loaded via the Kibana API.
+# This requires a Kibana endpoint configuration.
+setup.kibana.host: "kibana:5601"
+setup.kibana.protocol: "http"
+# setup.kibana.username: "kibana"
+# setup.kibana.password: "changeme"
+
+#============================== Output =====================================
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  # username: "elastic"
+  # password: "changeme"
+
+#============================== X-Pack monitoring =====================================
+# xpack.monitoring.enabled: true
+# xpack.monitoring.elasticsearch.username: "elastic"
+# xpack.monitoring.elasticsearch.password: "changeme"
+# xpack.monitoring.elasticsearch.url: ["http://elk_elasticsearch:9200"]
+
+#============================== Logging ====================================
+logging.level: warning
+logging.to_files: true
+logging.files:
+  path: /var/log/apmserver
+  name: apmserver
+  keepfiles: 7
+  permissions: 0644

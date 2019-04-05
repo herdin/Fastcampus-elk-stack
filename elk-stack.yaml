@@ -1,0 +1,192 @@
+version: '3.7'
+
+################## Stack services ##################
+services:
+
+  ################## Elasticsearch info ##################
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    configs:
+      - source: elasticsearch_config
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: elasticsearch_log_config
+        target: /usr/share/elasticsearch/config/log4j2.properties
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx4g -Xms4g"
+    networks:
+      - elk
+    # healthcheck:
+    #   test: ["CMD", "curl", "-s", "-f", "-u", "elastic:changeme", "http://localhost:9200/_cat/health"]
+    #   interval: 10s
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################## Logstash info ##################
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.5.4
+    command: --log.level warn
+    configs:
+      - source: logstash_config
+        target: /usr/share/logstash/config/logstash.yml
+      - source: logstash_pipeline
+        target: /usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx2g -Xms2g"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+      - logstash
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:9600/?pretty"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        reservations:
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################## Kibana info ##################
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    ports:
+      - 5601:5601
+    networks:
+      - elk
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/login"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################## Filebeat info ##################
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:6.5.4
+    user: root
+    command: 
+      - --strict.perms=false
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    configs:
+      - source: filebeat_config
+        target: /usr/share/filebeat/filebeat.yml
+    networks:
+      - elk
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+  ################## Metricbeat info ##################
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:6.5.4
+    hostname: "{{.Node.Hostname}}"
+    user: root
+    command:
+      - "-system.hostfs=/hostfs"
+    networks:
+      - elk
+    configs:
+      - source: metricbeat_config
+        target: /usr/share/metricbeat/metricbeat.yml
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+  ################## Apm-server info ##################
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:6.5.4
+    user: root
+    networks:
+      - elk
+    configs:
+      - source: apm-server_config
+        target: /usr/share/apm-server/apm-server.yml
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+################## Global config ##################
+configs:
+
+  ################## Elasticsearch config ##################
+  elasticsearch_config:
+    file: ./elasticsearch/config/elasticsearch.yml
+  elasticsearch_log_config:
+    file: ./elasticsearch/config/log4j2.properties
+
+  ################## Logstash config ##################
+  logstash_config:
+    file: ./logstash/config/logstash.yml
+  logstash_pipeline:
+    file: ./logstash/pipeline/logstash.conf
+
+  ################## Kibana config ##################
+  kibana_config:
+    file: ./kibana/config/kibana.yml
+
+  ################## Filebeat config ##################
+  filebeat_config:
+    file: ./filebeat/config/filebeat.yml
+
+  ################## Metricbeat config ##################
+  metricbeat_config:
+    file: ./metricbeat/config/metricbeat.yml
+
+  ################## APM-server config ##################
+  apm-server_config:
+    file: ./apm-server/config/apm-server.yml
+
+networks:
+  elk:
+    driver: overlay
+
+volumes:
+  es-data:
