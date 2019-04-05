@@ -62,6 +62,82 @@ services:
         max_attempts: 3
         window: 1m
 
+  ################## Kibana info ##################
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    ports:
+      - 5601:5601
+    networks:
+      - net
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/login"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################# Filebeat info ##################
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:6.5.4
+    user: root
+    command:
+      - --strict.perms=false
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    configs:
+      - source: filebeat_config
+        target: /usr/share/filebeat/filebeat.yml
+    networks:
+      - net
+    depends_on:
+      - elasticsearch
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
+  ################# Metricbeat info ##################
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:6.5.4
+    user: root
+    command:
+      - "-system.hostfs=/hostfs"
+    networks:
+      - net
+    configs:
+      - source: metricbeat_config
+        target: /usr/share/metricbeat/metricbeat.yml
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - elasticsearch
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+
 ################## Global config ##################
 configs:
 
@@ -80,7 +156,6 @@ configs:
   ################## Kibana config ##################
   kibana_config:
     file: ./kibana/config/kibana.yml
-
 
 networks:
   net:
