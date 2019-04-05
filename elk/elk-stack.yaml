@@ -43,12 +43,12 @@ services:
       - net
     depends_on:
       - elasticsearch
-    healthcheck:
-      test: ["CMD", "curl", "-s", "-f", "http://localhost:9600/?pretty"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 1m
+    # healthcheck:
+    #   test: ["CMD", "curl", "-s", "-f", "http://localhost:9600/?pretty"]
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 1m
     deploy:
       mode: replicated
       restart_policy:
@@ -70,12 +70,12 @@ services:
     depends_on:
       - elasticsearch
       - logstash
-    healthcheck:
-      test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/login"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 1m
+    # healthcheck:
+    #   test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/login"]
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 1m
     deploy:
       mode: replicated
       restart_policy:
