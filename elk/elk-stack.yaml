@@ -1,0 +1,111 @@
+version: '3.7'
+
+################## Stack services ##################
+services:
+
+  ################## Elasticsearch info ##################
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    configs:
+      - source: elasticsearch_config
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: elasticsearch_log_config
+        target: /usr/share/elasticsearch/config/log4j2.properties
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx1g -Xms1g"
+    networks:
+      - net
+    # healthcheck:
+    #   test: ["CMD", "curl", "-s", "-f", "-u", "elastic:changeme", "http://localhost:9200/_cat/health"]
+    #   interval: 10s
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################## Logstash info ##################
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.5.4
+    command: --log.level warn
+    configs:
+      - source: logstash_config
+        target: /usr/share/logstash/config/logstash.yml
+      - source: logstash_pipeline
+        target: /usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+    networks:
+      - net
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:9600/?pretty"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+  ################## Kibana info ##################
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    ports:
+      - 5601:5601
+    networks:
+      - net
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    depends_on:
+      - elasticsearch
+      - logstash
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/login"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 1m
+
+################## Global config ##################
+configs:
+
+  ################## Elasticsearch config ##################
+  elasticsearch_config:
+    file: ./elasticsearch/config/elasticsearch.yml
+  elasticsearch_log_config:
+    file: ./elasticsearch/config/log4j2.properties
+
+  ################## Logstash config ##################
+  logstash_config:
+    file: ./logstash/config/logstash.yml
+  logstash_pipeline:
+    file: ./logstash/pipeline/logstash.conf
+
+  ################## Kibana config ##################
+  kibana_config:
+    file: ./kibana/config/kibana.yml
+
+networks:
+  net:
+    driver: overlay
+
+volumes:
+  es-data:
